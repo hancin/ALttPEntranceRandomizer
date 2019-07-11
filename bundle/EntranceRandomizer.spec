@@ -24,7 +24,6 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=False,
-          icon='data/ER.ico',
           console=is_win )
 coll = COLLECT(exe,
                a.binaries,

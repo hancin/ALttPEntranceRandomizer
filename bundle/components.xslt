@@ -23,7 +23,7 @@
                Description="ALttP Entrance Randomizer"
                Directory="ApplicationProgramsFolder" />
     </xsl:template>
-    <xsl:template match="wix:File[@Source='SourceDir\README.hmtl']">
+    <xsl:template match="wix:File[@Source='SourceDir\README.html']">
         <xsl:copy-of select="." />
         <wix:Shortcut Id="ReadmeShortcut"
                  Name="ALttP Entrance Randomizer README"
