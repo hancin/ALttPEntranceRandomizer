@@ -5,9 +5,13 @@ import json
 import random
 import os
 import shutil
+from typing import List
+from dataclasses import dataclass, asdict
 from tkinter import Checkbutton, OptionMenu, Toplevel, LabelFrame, PhotoImage, Tk, LEFT, RIGHT, BOTTOM, TOP, CENTER, N, S, StringVar, IntVar, Frame, Label, W, E, X, BOTH, Entry, Spinbox, Button, filedialog, messagebox, ttk
 from urllib.parse import urlparse
 from urllib.request import urlopen
+import yaml
+from io import open
 
 from AdjusterMain import adjust
 from GuiUtils import ToolTips, set_icon, BackgroundTaskProgress
@@ -15,19 +19,152 @@ from Main import main, __version__ as ESVersion
 from Rom import Sprite
 from Utils import is_bundled, local_path, output_path, open_file, parse_names_string
 
+@dataclass
+class GuiSettings:
+    ''' Holds and persists settings picked in the GUI for faster generation '''
+    
+    keysanity: bool = False
+    retro: bool = False
+    customItems: bool = False
+    customItemList: List[int] = None
+    shuffleGanonEntrance: bool = True
+    rom: str = ''
+    mode: str = 'open'
+    logic: str = 'noglitches'
+    goal: str = 'ganon'
+    entranceShuffle: str = 'vanilla'
+    createSpoiler: bool = False
+    suppressRom: bool = False
+    includeDungeonItems: bool = True
+    beatableOnly: bool = False
+    hints: str = 'normal'
+    difficulty: str = 'normal'
+    timer: str = 'none'
+    progressiveItems: bool = True
+    algorithm: str = 'balanced'
+    quickSwap: bool = True
+    disableMusic: bool = False
+    heartBeeps: str = 'normal'
+    heartColor: str = 'red'
+    menuSpeed: str = 'normal'
+    enemizerPath : str = ''
+    enemizerEnemyShuffle: bool = False
+    enemizerPaletteShuffle: bool = False
+    enemizerPotShuffle: bool = False
+    enemizerBossShuffle: str = 'none'
+    enemizerEnemyDamage: str = 'default'
+    enemizerEnemyHealth: str = 'default'
+
+    def load_file(self, file):
+        with open(file, 'r') as stream:
+            data = yaml.safe_load(stream)
+            self.keysanity = data.get('keysanity', False)
+            self.retro = data.get('retro', False)
+            self.customItems = data.get('customItems', False)
+            self.customItemList = data.get('customItemList', [])
+            self.shuffleGanonEntrance = data.get('shuffleGanonEntrance', False)
+            self.rom = data.get('rom', '')
+            self.mode = data.get('mode', 'open')
+            self.logic = data.get('logic', 'noglitches')
+            self.goal = data.get('goal', 'ganon')
+            self.entranceShuffle = data.get('entranceShuffle', 'vanilla')
+            self.createSpoiler = data.get('createSpoiler', False)
+            self.suppressRom = data.get('suppressRom', False)
+            self.includeDungeonItems = data.get('includeDungeonItems', True)
+            self.beatableOnly = data.get('beatableOnly', False)
+            self.hints = data.get('hints', 'normal')
+            self.difficulty = data.get('difficulty', 'normal')
+            self.timer = data.get('timer', 'normal')
+            self.progressiveItems = data.get('progressiveItems', True)
+            self.algorithm = data.get('algorithm', 'balanced')
+            self.quickSwap = data.get('quickSwap', True)
+            self.disableMusic = data.get('disableMusic', False)
+            self.heartBeeps = data.get('heartBeeps', 'normal')
+            self.heartColor = data.get('heartColor', 'red')
+            self.menuSpeed = data.get('menuSpeed', 'normal')
+            self.enemizerPath = data.get('enemizerPath', '')
+            self.enemizerEnemyShuffle = data.get('enemizerEnemyShuffle', False)
+            self.enemizerPaletteShuffle = data.get('enemizerPaletteShuffle', False)
+            self.enemizerPotShuffle = data.get('enemizerPotShuffle', False)
+            self.enemizerBossShuffle = data.get('enemizerBossShuffle', 'none')
+            self.enemizerEnemyDamage = data.get('enemizerEnemyDamage', 'default')
+            self.enemizerEnemyHealth = data.get('enemizerEnemyHealth', 'default')
+
+    def save_file(self, file):
+        if self.customItemList is None:
+            self.customItemList = []
+        
+        with open(file, 'w', encoding='utf8') as stream:
+            data = asdict(self)
+            yaml.dump(data, stream, default_flow_style=False, allow_unicode = True)
+
+    def from_args(self, data):
+        self.keysanity = data.keysanity
+        self.retro = data.retro
+        self.customItems = data.custom
+        self.customItemList = data.customitemarray
+        self.shuffleGanonEntrance = data.shuffleganon
+        self.rom = data.rom
+        self.mode = data.mode
+        self.logic = data.logic
+        self.goal = data.goal
+        self.entranceShuffle = data.shuffle
+        self.createSpoiler = data.create_spoiler
+        self.suppressRom = data.suppress_rom
+        self.includeDungeonItems = not data.nodungeonitems
+        self.beatableOnly = data.beatableonly
+        self.hints = 'normal' if data.hints else 'none'
+        self.difficulty = data.difficulty
+        self.timer = data.timer
+        self.progressiveItems = data.progressive == 'on'
+        self.algorithm = data.algorithm
+        self.quickSwap = data.quickswap
+        self.disableMusic = data.disablemusic
+        self.heartBeeps = data.heartbeep
+        self.heartColor = data.heartcolor
+        self.menuSpeed = data.fastmenu
+        self.enemizerPath = data.enemizercli
+        self.enemizerEnemyShuffle = data.shuffleenemies
+        self.enemizerPaletteShuffle = data.shufflepalette
+        self.enemizerPotShuffle = data.shufflepots
+        self.enemizerBossShuffle = data.shufflebosses
+        self.enemizerEnemyDamage = data.enemy_damage
+        self.enemizerEnemyHealth = data.enemy_health
+
+
+
 def make_dropdown(master, text, default, *values):
     frame = Frame(master)
     var = StringVar(value=default)
-    option = OptionMenu(frame,var,default,*values)
+    option = OptionMenu(frame,var,*values)
     option.pack(side=RIGHT)
     label = Label(frame, text=text)
     label.pack(side=LEFT)
     return frame, var
 
+def make_checkbox(master, text, value):
+    var = IntVar()
+    var.set(1 if value else 0)
+    checkbutton = Checkbutton(master, text=text, variable=var)
+    return checkbutton, var
+
 def guiMain(args=None):
+
     mainWindow = Tk()
     mainWindow.wm_title("Multiworld %s" % ESVersion)
 
+    settings = GuiSettings()
+    #Load saved parameters
+    if os.path.exists(local_path('guisettings.yaml')):
+        try:
+            settings.load_file(local_path('guisettings.yaml'))
+        except yaml.YAMLError as e:
+            messagebox.showerror('Configuration Error', 'Error while reading configuration, will use default settings: %s' % e)
+            settings = GuiSettings()
+            settings.save_file(local_path('guisettings.yaml'))
+    else:
+        settings.save_file(local_path('guisettings.yaml'))
+    
     set_icon(mainWindow)
 
     notebook = ttk.Notebook(mainWindow)
@@ -62,17 +199,11 @@ def guiMain(args=None):
     rightHalfFrame = Frame(topFrame)
     checkBoxFrame = Frame(rightHalfFrame)
 
-    keysanityVar = IntVar()
-    keysanityCheckbutton = Checkbutton(checkBoxFrame, text="Keysanity (keys anywhere)", variable=keysanityVar)
-    retroVar = IntVar()
-    retroCheckbutton = Checkbutton(checkBoxFrame, text="Retro mode (universal keys)", variable=retroVar)
-    customVar = IntVar()
-    customCheckbutton = Checkbutton(checkBoxFrame, text="Use custom item pool", variable=customVar)
-    shuffleGanonVar = IntVar()
-    shuffleGanonVar.set(1) #set default
-    shuffleGanonCheckbutton = Checkbutton(checkBoxFrame, text="Include GT and Pyramid Hole in shuffle pool", variable=shuffleGanonVar)
+    keysanityCheckbutton, keysanityVar = make_checkbox(checkBoxFrame, "Keysanity (keys anywhere)", settings.keysanity)
+    retroCheckbutton, retroVar = make_checkbox(checkBoxFrame, "Retro mode (universal keys)", settings.retro)
+    customCheckbutton, customVar = make_checkbox(checkBoxFrame, "Use custom item pool", settings.customItems)
+    shuffleGanonCheckbutton, shuffleGanonVar = make_checkbox(checkBoxFrame, "Include GT and Pyramid Hole in shuffle pool", settings.shuffleGanonEntrance)
     
-
     keysanityCheckbutton.pack(expand=True, anchor=W)
     retroCheckbutton.pack(expand=True, anchor=W)
     customCheckbutton.pack(expand=True, anchor=W)
@@ -84,6 +215,7 @@ def guiMain(args=None):
     romDialogFrame = Frame(fileDialogFrame)
     baseRomLabel = Label(romDialogFrame, text='Base Rom')
     romVar = StringVar()
+    romVar.set(settings.rom)
     romEntry = Entry(romDialogFrame, textvariable=romVar)
 
     def RomSelect():
@@ -102,40 +234,10 @@ def guiMain(args=None):
 
     drowDownFrame = Frame(topFrame)
 
-    modeFrame = Frame(drowDownFrame)
-    modeVar = StringVar()
-    modeVar.set('open')
-    modeOptionMenu = OptionMenu(modeFrame, modeVar, 'standard', 'open', 'swordless')
-    modeOptionMenu.pack(side=RIGHT)
-    modeLabel = Label(modeFrame, text='Game Mode')
-    modeLabel.pack(side=LEFT)
-
-    logicFrame = Frame(drowDownFrame)
-    logicVar = StringVar()
-    logicVar.set('noglitches')
-    logicOptionMenu = OptionMenu(logicFrame, logicVar, 'noglitches', 'minorglitches', 'nologic')
-    logicOptionMenu.pack(side=RIGHT)
-    logicLabel = Label(logicFrame, text='Game logic')
-    logicLabel.pack(side=LEFT)
-
-    goalFrame = Frame(drowDownFrame)
-    goalVar = StringVar()
-    goalVar.set('ganon')
-    goalOptionMenu = OptionMenu(goalFrame, goalVar, 'ganon', 'pedestal', 'dungeons', 'triforcehunt', 'crystals')
-    goalOptionMenu.pack(side=RIGHT)
-    goalLabel = Label(goalFrame, text='Game goal')
-    goalLabel.pack(side=LEFT)
-
-
-
-    shuffleFrame = Frame(drowDownFrame)
-    shuffleVar = StringVar()
-    shuffleVar.set('vanilla')
-    shuffleOptionMenu = OptionMenu(shuffleFrame, shuffleVar, 'vanilla', 'simple', 'restricted', 'full', 'crossed', 'insanity', 'restricted_legacy', 'full_legacy', 'madness_legacy', 'insanity_legacy', 'dungeonsfull', 'dungeonssimple')
-    shuffleOptionMenu.pack(side=RIGHT)
-    shuffleLabel = Label(shuffleFrame, text='Entrance shuffle algorithm')
-    shuffleLabel.pack(side=LEFT)
-
+    modeFrame, modeVar = make_dropdown(drowDownFrame, 'Game Mode', settings.mode, 'standard', 'open', 'swordless')
+    logicFrame, logicVar = make_dropdown(drowDownFrame, 'Game logic', settings.logic, 'noglitches', 'minorglitches', 'nologic')
+    goalFrame, goalVar = make_dropdown(drowDownFrame, 'Game goal', settings.goal, 'ganon', 'pedestal', 'dungeons', 'triforcehunt', 'crystals')
+    shuffleFrame, shuffleVar = make_dropdown(drowDownFrame, 'Entrance shuffle algorithm', settings.entranceShuffle, 'vanilla', 'simple', 'restricted', 'full', 'crossed', 'insanity', 'restricted_legacy', 'full_legacy', 'madness_legacy', 'insanity_legacy', 'dungeonsfull', 'dungeonssimple')
 
     modeFrame.pack(expand=True, anchor=E)
     goalFrame.pack(expand=True, anchor=E)
@@ -149,19 +251,12 @@ def guiMain(args=None):
     generationTweaksFrameRight = Frame(generationTweaksFrameCenter)
 
     
-    createSpoilerVar = IntVar()
-    createSpoilerCheckbutton = Checkbutton(generationTweaksFrameRight, text="Create Spoiler Log", variable=createSpoilerVar)
-    suppressRomVar = IntVar()
-    suppressRomCheckbutton = Checkbutton(generationTweaksFrameRight, text="Do not create patched Rom", variable=suppressRomVar)
-    dungeonItemsVar = IntVar()
-    dungeonItemsCheckbutton = Checkbutton(generationTweaksFrameRight, text="Place Dungeon Items (Compasses/Maps)", onvalue=0, offvalue=1, variable=dungeonItemsVar)
-    beatableOnlyVar = IntVar()
-    beatableOnlyCheckbutton = Checkbutton(generationTweaksFrameRight, text="Only ensure seed is beatable", variable=beatableOnlyVar)
-    hintsVar = IntVar()
-    hintsVar.set(1) #set default
-    hintsCheckbutton = Checkbutton(generationTweaksFrameRight, text="Include Helpful Hints", variable=hintsVar)
-
-    
+    createSpoilerCheckbutton,createSpoilerVar = make_checkbox(generationTweaksFrameRight, "Create Spoiler Log", settings.createSpoiler)
+    suppressRomCheckbutton, suppressRomVar = make_checkbox(generationTweaksFrameRight, "Do not create patched Rom", settings.suppressRom)
+    dungeonItemsCheckbutton, dungeonItemsVar = make_checkbox(generationTweaksFrameRight, "Place Dungeon Items (Compasses/Maps)", settings.includeDungeonItems)
+    beatableOnlyCheckbutton, beatableOnlyVar = make_checkbox(generationTweaksFrameRight, "Only ensure seed is beatable", settings.beatableOnly)
+    hintsCheckbutton, hintsVar = make_checkbox(generationTweaksFrameRight, "Include Helpful Hints", 1 if settings.hints == 'normal' else 0)
+        
     createSpoilerCheckbutton.pack(expand=True, anchor=W)
     suppressRomCheckbutton.pack(expand=True, anchor=W)
     dungeonItemsCheckbutton.pack(expand=True, anchor=W)
@@ -169,12 +264,10 @@ def guiMain(args=None):
     hintsCheckbutton.pack(expand=True, anchor=W)
 
 
-    difficultyFrame, difficultyVar = make_dropdown(generationTweaksFrameLeft, 'Game difficulty', 'easy', 'normal', 'hard', 'expert', 'insane')
-    difficultyVar.set('normal')
-    timerFrame, timerVar = make_dropdown(generationTweaksFrameLeft, 'Timer setting', 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
-    progressiveFrame, progressiveVar = make_dropdown(generationTweaksFrameLeft, 'Progressive equipment', 'on', 'off', 'random')
-    algorithmFrame, algorithmVar = make_dropdown(generationTweaksFrameLeft, 'Item distribution algorithm', 'freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced')
-    algorithmVar.set('balanced')
+    difficultyFrame, difficultyVar = make_dropdown(generationTweaksFrameLeft, 'Game difficulty', settings.difficulty, 'easy', 'normal', 'hard', 'expert', 'insane')
+    timerFrame, timerVar = make_dropdown(generationTweaksFrameLeft, 'Timer setting', settings.timer, 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
+    progressiveFrame, progressiveVar = make_dropdown(generationTweaksFrameLeft, 'Progressive equipment', 'on' if settings.progressiveItems else 'off', 'on', 'off', 'random')
+    algorithmFrame, algorithmVar = make_dropdown(generationTweaksFrameLeft, 'Item distribution algorithm', settings.algorithm, 'freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced')
     
     difficultyFrame.pack(expand=True, anchor=E)
     timerFrame.pack(expand=True, anchor=E)
@@ -191,18 +284,15 @@ def guiMain(args=None):
     tweaksFrameLeft = Frame(tweaksFrameCenter)
     tweaksFrameRight = Frame(tweaksFrameCenter)
     
-    quickSwapVar = IntVar()
-    quickSwapCheckbutton = Checkbutton(tweaksFrameRight, text="Enabled L/R Item quickswapping", variable=quickSwapVar)
-    disableMusicVar = IntVar()
-    disableMusicCheckbutton = Checkbutton(tweaksFrameRight, text="Disable game music", variable=disableMusicVar)
+    quickSwapCheckbutton, quickSwapVar = make_checkbox(tweaksFrameRight, "Enabled L/R Item quickswapping", settings.quickSwap)
+    disableMusicCheckbutton, disableMusicVar = make_checkbox(tweaksFrameRight, "Disable game music", settings.disableMusic)
 
     quickSwapCheckbutton.pack(expand=True, anchor=W)
     disableMusicCheckbutton.pack(expand=True, anchor=W)
 
-    heartbeepFrame, heartbeepVar = make_dropdown(tweaksFrameLeft, 'Heartbeep sound rate', 'double', 'normal', 'half', 'quarter', 'off')
-    heartbeepVar.set('normal')
-    heartcolorFrame, heartcolorVar = make_dropdown(tweaksFrameLeft, 'Heart color', 'red', 'blue', 'green', 'yellow', 'random')
-    fastMenuFrame, fastMenuVar = make_dropdown(tweaksFrameLeft, 'Menu speed', 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
+    heartbeepFrame, heartbeepVar = make_dropdown(tweaksFrameLeft, 'Heartbeep sound rate', settings.heartBeeps, 'double', 'normal', 'half', 'quarter', 'off')
+    heartcolorFrame, heartcolorVar = make_dropdown(tweaksFrameLeft, 'Heart color', settings.heartColor, 'red', 'blue', 'green', 'yellow', 'random')
+    fastMenuFrame, fastMenuVar = make_dropdown(tweaksFrameLeft, 'Menu speed', settings.menuSpeed, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
     
     heartbeepFrame.pack(expand=True, anchor=E)
     heartcolorFrame.pack(expand=True, anchor=E)
@@ -256,6 +346,7 @@ def guiMain(args=None):
     enemizerCLIlabel = Label(enemizerPathFrame, text="EnemizerCLI path: ")
     enemizerCLIlabel.pack(side=LEFT)
     enemizerCLIpathVar = StringVar()
+    enemizerCLIpathVar.set(settings.enemizerPath)
     enemizerCLIpathEntry = Entry(enemizerPathFrame, textvariable=enemizerCLIpathVar, width=80)
     enemizerCLIpathEntry.pack(side=LEFT)
     def EnemizerSelectPath():
@@ -266,12 +357,15 @@ def guiMain(args=None):
     enemizerCLIbrowseButton.pack(side=LEFT)
 
     enemyShuffleVar = IntVar()
+    enemyShuffleVar.set(1 if settings.enemizerEnemyShuffle else 0)
     enemyShuffleButton = Checkbutton(enemizerFrame, text="Enemy shuffle", variable=enemyShuffleVar)
     enemyShuffleButton.grid(row=1, column=0)
     paletteShuffleVar = IntVar()
+    paletteShuffleVar.set(1 if settings.enemizerPaletteShuffle else 0)
     paletteShuffleButton = Checkbutton(enemizerFrame, text="Palette shuffle", variable=paletteShuffleVar)
     paletteShuffleButton.grid(row=1, column=1)
     potShuffleVar = IntVar()
+    potShuffleVar.set(1 if settings.enemizerPotShuffle else 0)
     potShuffleButton = Checkbutton(enemizerFrame, text="Pot shuffle", variable=potShuffleVar)
     potShuffleButton.grid(row=1, column=2)
 
@@ -280,7 +374,7 @@ def guiMain(args=None):
     enemizerBossLabel = Label(enemizerBossFrame, text='Boss shuffle')
     enemizerBossLabel.pack(side=LEFT)
     enemizerBossVar = StringVar()
-    enemizerBossVar.set('none')
+    enemizerBossVar.set(settings.enemizerBossShuffle)
     enemizerBossOption = OptionMenu(enemizerBossFrame, enemizerBossVar, 'none', 'basic', 'normal', 'chaos')
     enemizerBossOption.pack(side=LEFT)
 
@@ -289,7 +383,7 @@ def guiMain(args=None):
     enemizerDamageLabel = Label(enemizerDamageFrame, text='Enemy damage')
     enemizerDamageLabel.pack(side=LEFT)
     enemizerDamageVar = StringVar()
-    enemizerDamageVar.set('default')
+    enemizerDamageVar.set(settings.enemizerEnemyDamage)
     enemizerDamageOption = OptionMenu(enemizerDamageFrame, enemizerDamageVar, 'default', 'shuffled', 'chaos')
     enemizerDamageOption.pack(side=LEFT)
 
@@ -298,7 +392,7 @@ def guiMain(args=None):
     enemizerHealthLabel = Label(enemizerHealthFrame, text='Enemy health')
     enemizerHealthLabel.pack(side=LEFT)
     enemizerHealthVar = StringVar()
-    enemizerHealthVar.set('default')
+    enemizerHealthVar.set(settings.enemizerEnemyHealth)
     enemizerHealthOption = OptionMenu(enemizerHealthFrame, enemizerHealthVar, 'default', 'easy', 'normal', 'hard', 'expert')
     enemizerHealthOption.pack(side=LEFT)
 
@@ -339,7 +433,7 @@ def guiMain(args=None):
         guiargs.suppress_rom = bool(suppressRomVar.get())
         guiargs.keysanity = bool(keysanityVar.get())
         guiargs.retro = bool(retroVar.get())
-        guiargs.nodungeonitems = bool(dungeonItemsVar.get())
+        guiargs.nodungeonitems = not bool(dungeonItemsVar.get())
         guiargs.beatableonly = bool(beatableOnlyVar.get())
         guiargs.quickswap = bool(quickSwapVar.get())
         guiargs.disablemusic = bool(disableMusicVar.get())
@@ -365,8 +459,9 @@ def guiMain(args=None):
         guiargs.rom = romVar.get()
         guiargs.jsonout = None
         guiargs.sprite = sprite
-        guiargs.skip_playthrough = False
+        guiargs.skip_playthrough = True
         guiargs.outputpath = None
+        settings.from_args(guiargs)
         try:
             if guiargs.count is not None:
                 seed = guiargs.seed
@@ -378,6 +473,7 @@ def guiMain(args=None):
         except Exception as e:
             messagebox.showerror(title="Error while creating seed", message=str(e))
         else:
+            settings.save_file(local_path('guisettings.yaml'))
             msgtxt = "Rom patched successfully"
             if guiargs.names:
                 for player, name in parse_names_string(guiargs.names).items():
