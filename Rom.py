@@ -1307,7 +1307,7 @@ def write_strings(rom, world, player):
         if world.keysanity:
             items_to_hint.extend(KeysanityItems)
         random.shuffle(items_to_hint)
-        hint_count = 5 if world.shuffle != 'vanilla' else 7
+        hint_count = random.randint(5, 9) if world.shuffle != 'vanilla' else random.randint(10, 16)
         while hint_count > 0:
             this_item = items_to_hint.pop(0)
             this_location = world.find_items(this_item, player)
