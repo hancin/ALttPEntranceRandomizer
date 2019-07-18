@@ -173,7 +173,7 @@ def main(args, seed=None):
             pickle.dump(multidata, f, pickle.HIGHEST_PROTOCOL)
 
     if args.create_spoiler and not args.jsonout:
-        world.spoiler.to_file(output_path('%s_Spoiler.txt' % outfilebase))
+        world.spoiler.to_file(output_path('%s_%s_Spoiler.txt' % (world.seed, outfilebase)))
 
     if not args.skip_playthrough:
         logger.info('Calculating playthrough.')
