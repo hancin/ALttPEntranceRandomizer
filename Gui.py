@@ -55,6 +55,12 @@ class GuiSettings:
     enemizerEnemyDamage: str = 'default'
     enemizerEnemyHealth: str = 'default'
     sprite: str = ''
+    adjustHeartBeeps: str = 'normal'
+    adjustHeartColor: str = 'red'
+    adjustMenuSpeed: str = 'normal'
+    adjustSprite: str = ''
+    adjustQuickSwap: bool = True
+    adjustDisableMusic: bool = False
 
     def load_file(self, file):
         with open(file, 'r') as stream:
@@ -91,6 +97,12 @@ class GuiSettings:
             self.enemizerEnemyDamage = data.get('enemizerEnemyDamage', 'default')
             self.enemizerEnemyHealth = data.get('enemizerEnemyHealth', 'default')
             self.sprite = data.get('sprite', '')
+            self.adjustHeartBeeps = data.get('adjustHeartBeeps', 'normal')
+            self.adjustHeartColor = data.get('adjustHeartColor', 'red')
+            self.adjustMenuSpeed = data.get('adjustMenuSpeed', 'normal')
+            self.adjustSprite = data.get('adjustSprite', '')
+            self.adjustQuickSwap = data.get('adjustQuickSwap', True)
+            self.adjustDisableMusic = data.get('adjustDisableMusic', False)
 
     def save_file(self, file):
         if self.customItemList is None:
@@ -99,6 +111,15 @@ class GuiSettings:
         with open(file, 'w', encoding='utf8') as stream:
             data = asdict(self)
             yaml.dump(data, stream, default_flow_style=False, allow_unicode = True)
+
+    def from_adjust_args(self, data):
+        self.adjustQuickSwap = data.quickswap
+        self.adjustSprite = data.sprite.fileName if data.sprite is not None else ''
+        self.adjustHeartBeeps = data.heartbeep
+        self.adjustHeartColor = data.heartcolor
+        self.adjustMenuSpeed = data.fastmenu
+        self.adjustDisableMusic = data.disablemusic
+
 
     def from_args(self, data):
         self.keysanity = data.keysanity
@@ -307,7 +328,9 @@ def guiMain(args=None):
     baseSpriteLabel = Label(spriteDialogFrame, text='Link Sprite:')
 
     spriteNameVar = StringVar()
+    spriteNameVar2 = StringVar()
     sprite = None
+    sprite2 = None
     def set_sprite(sprite_param):
         nonlocal sprite
         if sprite_param is None or not sprite_param.valid:
@@ -317,14 +340,32 @@ def guiMain(args=None):
             sprite = sprite_param
             spriteNameVar.set(sprite.name)
 
+            
+    def set_sprite2(sprite_param):
+        nonlocal sprite2
+        if sprite_param is None or not sprite_param.valid:
+            sprite2 = None
+            spriteNameVar2.set('(unchanged)')
+        else:
+            sprite2 = sprite_param
+            spriteNameVar2.set(sprite2.name)
+
     set_sprite(None)
+    set_sprite2(None)
     spriteNameVar.set('(unchanged)')
+    spriteNameVar2.set('(unchanged)')
 
     if settings.sprite != '' and settings.sprite is not None:
         try:
             set_sprite(Sprite(local_path(settings.sprite)))
         except: 
             messagebox.showerror('Invalid sprite', 'Invalid sprite %s' % settings.sprite)
+
+    if settings.adjustSprite != '' and settings.adjustSprite is not None:
+        try:
+            set_sprite2(Sprite(local_path(settings.adjustSprite)))
+        except: 
+            messagebox.showerror('Invalid sprite 2', 'Invalid sprite %s' % settings.sprite)
         
 
     spriteEntry = Label(spriteDialogFrame, textvariable=spriteNameVar)
@@ -515,16 +556,18 @@ def guiMain(args=None):
     generationTweaksFrame.pack(side=BOTTOM, fill=X)
 
     # Adjuster Controls
+    registry = []
 
     topFrame2 = Frame(adjustWindow)
     rightHalfFrame2 = Frame(topFrame2)
     checkBoxFrame2 = Frame(rightHalfFrame2)
 
-    quickSwapCheckbutton2 = Checkbutton(checkBoxFrame2, text="Enabled L/R Item quickswapping", variable=quickSwapVar)
-    disableMusicCheckbutton2 = Checkbutton(checkBoxFrame2, text="Disable game music", variable=disableMusicVar)
+    _, adjustQuickSwapVar = make_checkbox(registry, checkBoxFrame2, "Enabled L/R Item quickswapping", settings.adjustQuickSwap)
+    _, adjustDisableMusicVar = make_checkbox(registry, checkBoxFrame2, "Disable game music", settings.adjustDisableMusic)
 
-    quickSwapCheckbutton2.pack(expand=True, anchor=W)
-    disableMusicCheckbutton2.pack(expand=True, anchor=W)
+    for b in registry:
+        b.pack(expand=True, anchor=W)
+    registry = []
 
     fileDialogFrame2 = Frame(rightHalfFrame2)
 
@@ -544,10 +587,10 @@ def guiMain(args=None):
 
     spriteDialogFrame2 = Frame(fileDialogFrame2)
     baseSpriteLabel2 = Label(spriteDialogFrame2, text='Link Sprite')
-    spriteEntry2 = Label(spriteDialogFrame2, textvariable=spriteNameVar)
+    spriteEntry2 = Label(spriteDialogFrame2, textvariable=spriteNameVar2)
 
     def SpriteSelectAdjuster():
-        SpriteSelector(mainWindow, set_sprite, adjuster=True)
+        SpriteSelector(mainWindow, set_sprite2, adjuster=True)
 
     spriteSelectButton2 = Button(spriteDialogFrame2, text='Select Sprite', command=SpriteSelectAdjuster)
 
@@ -562,23 +605,9 @@ def guiMain(args=None):
     fileDialogFrame2.pack()
 
     drowDownFrame2 = Frame(topFrame2)
-    heartbeepFrame2 = Frame(drowDownFrame2)
-    heartbeepOptionMenu2 = OptionMenu(heartbeepFrame2, heartbeepVar, 'double', 'normal', 'half', 'quarter', 'off')
-    heartbeepOptionMenu2.pack(side=RIGHT)
-    heartbeepLabel2 = Label(heartbeepFrame2, text='Heartbeep sound rate')
-    heartbeepLabel2.pack(side=LEFT)
-
-    heartcolorFrame2 = Frame(drowDownFrame2)
-    heartcolorOptionMenu2 = OptionMenu(heartcolorFrame2, heartcolorVar, 'red', 'blue', 'green', 'yellow', 'random')
-    heartcolorOptionMenu2.pack(side=RIGHT)
-    heartcolorLabel2 = Label(heartcolorFrame2, text='Heart color')
-    heartcolorLabel2.pack(side=LEFT)
-
-    fastMenuFrame2 = Frame(drowDownFrame2)
-    fastMenuOptionMenu2 = OptionMenu(fastMenuFrame2, fastMenuVar, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
-    fastMenuOptionMenu2.pack(side=RIGHT)
-    fastMenuLabel2 = Label(fastMenuFrame2, text='Menu speed')
-    fastMenuLabel2.pack(side=LEFT)
+    _, adjustHeartbeepVar = make_dropdown(registry, drowDownFrame2, 'Heartbeep sound rate', settings.adjustHeartBeeps, 'double', 'normal', 'half', 'quarter', 'off')
+    _, adjustHeartcolorVar = make_dropdown(registry, drowDownFrame2, 'Heart color', settings.adjustHeartColor, 'red', 'blue', 'green', 'yellow', 'random')
+    _, adjustFastMenuVar = make_dropdown(registry, drowDownFrame2, 'Menu speed', settings.adjustMenuSpeed, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
 
     namesFrame2 = Frame(drowDownFrame2)
     namesLabel2 = Label(namesFrame2, text='Player names')
@@ -588,29 +617,31 @@ def guiMain(args=None):
     namesLabel2.pack(side=LEFT)
     namesEntry2.pack(side=LEFT)
 
-    heartbeepFrame2.pack(expand=True, anchor=E)
-    heartcolorFrame2.pack(expand=True, anchor=E)
-    fastMenuFrame2.pack(expand=True, anchor=E)
+    for b in registry:
+        b.pack(expand=True, anchor=E)
+    registry = []
     namesFrame2.pack(expand=True, anchor=E)
 
     bottomFrame2 = Frame(topFrame2)
 
     def adjustRom():
         guiargs = Namespace
-        guiargs.heartbeep = heartbeepVar.get()
-        guiargs.heartcolor = heartcolorVar.get()
-        guiargs.fastmenu = fastMenuVar.get()
-        guiargs.quickswap = bool(quickSwapVar.get())
-        guiargs.disablemusic = bool(disableMusicVar.get())
+        guiargs.heartbeep = adjustHeartbeepVar.get()
+        guiargs.heartcolor = adjustHeartcolorVar.get()
+        guiargs.fastmenu = adjustFastMenuVar.get()
+        guiargs.quickswap = bool(adjustQuickSwapVar.get())
+        guiargs.disablemusic = bool(adjustDisableMusicVar.get())
         guiargs.rom = romVar2.get()
-        guiargs.sprite = sprite
+        guiargs.sprite = sprite2
         guiargs.names = namesEntry2.get()
+        settings.from_adjust_args(guiargs)
         try:
             adjust(args=guiargs)
         except Exception as e:
             messagebox.showerror(title="Error while creating seed", message=str(e))
         else:
             msgtxt = "Rom patched successfully"
+            settings.save_file(local_path('guisettings.yaml'))
             if guiargs.names:
                 for player, name in parse_names_string(guiargs.names).items():
                     msgtxt += "\nPlayer %d => %s" % (player, name)
