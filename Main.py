@@ -125,7 +125,7 @@ def main(args, seed=None):
         sprite = None
 
     player_names = parse_names_string(args.names)
-    outfilebase = 'ER_%s_%s-%s-%s%s_%s-%s%s%s%s%s_%s' % (world.logic, world.difficulty, world.mode, world.goal, "" if world.timer in ['none', 'display'] else "-" + world.timer, world.shuffle, world.algorithm, "-keysanity" if world.keysanity else "", "-retro" if world.retro else "", "-prog_" + world.progressive if world.progressive in ['off', 'random'] else "", "-nohints" if not world.hints else "", world.seed)
+    outfilebase = 'ER_%s_%s-%s-%s%s_%s-%s%s%s%s%s' % (world.logic, world.difficulty, world.mode, world.goal, "" if world.timer in ['none', 'display'] else "-" + world.timer, world.shuffle, world.algorithm, "-keysanity" if world.keysanity else "", "-retro" if world.retro else "", "-prog_" + world.progressive if world.progressive in ['off', 'random'] else "", "-nohints" if not world.hints else "")
 
     use_enemizer = args.enemizercli and (args.shufflebosses != 'none' or args.shuffleenemies or args.enemy_health != 'default' or args.enemy_health != 'default' or args.enemy_damage or args.shufflepalette or args.shufflepots)
 
@@ -167,9 +167,9 @@ def main(args, seed=None):
                     rom = local_rom
 
                 apply_rom_settings(rom, args.heartbeep, args.heartcolor, world.quickswap, world.fastmenu, world.disable_music, sprite, player_names)
-                rom.write_to_file(output_path('%s_P%d%s.sfc' % (outfilebase, player, ('_' + player_names[player]) if player in player_names else '')))
+                rom.write_to_file(output_path('%s_P%d%s_%s.sfc' % (world.seed, player, ('_' + player_names[player]) if player in player_names else '', outfilebase)))
 
-        with open(output_path('%s_multidata' % outfilebase), 'wb') as f:
+        with open(output_path('%s_%s_multidata' % (world.seed, outfilebase)), 'wb') as f:
             pickle.dump(multidata, f, pickle.HIGHEST_PROTOCOL)
 
     if args.create_spoiler and not args.jsonout:
