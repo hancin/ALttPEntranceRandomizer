@@ -192,7 +192,11 @@ def main(args, seed=None):
 def gt_filler(world):
     if world.goal == 'triforcehunt':
         return random.randint(15, 50)
-    return random.randint(0, 15)
+    # Allow ES to have more progression in GT
+    if world.shuffle != 'vanilla':
+        return random.randint(0, 15)
+    # Boost GT Junk Fill in default MW settings.
+    return random.randint(17, 50)
 
 def copy_world(world):
     # ToDo: Not good yet
