@@ -54,6 +54,7 @@ class GuiSettings:
     enemizerBossShuffle: str = 'none'
     enemizerEnemyDamage: str = 'default'
     enemizerEnemyHealth: str = 'default'
+    sprite: str = ''
 
     def load_file(self, file):
         with open(file, 'r') as stream:
@@ -89,6 +90,7 @@ class GuiSettings:
             self.enemizerBossShuffle = data.get('enemizerBossShuffle', 'none')
             self.enemizerEnemyDamage = data.get('enemizerEnemyDamage', 'default')
             self.enemizerEnemyHealth = data.get('enemizerEnemyHealth', 'default')
+            self.sprite = data.get('sprite', '')
 
     def save_file(self, file):
         if self.customItemList is None:
@@ -130,28 +132,32 @@ class GuiSettings:
         self.enemizerBossShuffle = data.shufflebosses
         self.enemizerEnemyDamage = data.enemy_damage
         self.enemizerEnemyHealth = data.enemy_health
+        self.sprite = data.sprite.fileName if data.sprite is not None else ''
 
 
 
-def make_dropdown(master, text, default, *values):
+def make_dropdown(register, master, text, default, *values):
     frame = Frame(master)
     var = StringVar(value=default)
-    option = OptionMenu(frame,var,*values)
+    option = OptionMenu(frame,var,values[0],*values[1:])
     option.pack(side=RIGHT)
     label = Label(frame, text=text)
     label.pack(side=LEFT)
+    register.append(frame)
     return frame, var
 
-def make_checkbox(master, text, value):
+def make_checkbox(register, master, text, value):
     var = IntVar()
     var.set(1 if value else 0)
     checkbutton = Checkbutton(master, text=text, variable=var)
+    register.append(checkbutton)
     return checkbutton, var
 
 def guiMain(args=None):
 
     mainWindow = Tk()
     mainWindow.wm_title("Multiworld %s" % ESVersion)
+    tempList = []
 
     settings = GuiSettings()
     #Load saved parameters
@@ -199,15 +205,14 @@ def guiMain(args=None):
     rightHalfFrame = Frame(topFrame)
     checkBoxFrame = Frame(rightHalfFrame)
 
-    keysanityCheckbutton, keysanityVar = make_checkbox(checkBoxFrame, "Keysanity (keys anywhere)", settings.keysanity)
-    retroCheckbutton, retroVar = make_checkbox(checkBoxFrame, "Retro mode (universal keys)", settings.retro)
-    customCheckbutton, customVar = make_checkbox(checkBoxFrame, "Use custom item pool", settings.customItems)
-    shuffleGanonCheckbutton, shuffleGanonVar = make_checkbox(checkBoxFrame, "Include GT and Pyramid Hole in shuffle pool", settings.shuffleGanonEntrance)
+    _, keysanityVar = make_checkbox(tempList, checkBoxFrame, "Keysanity (keys anywhere)", settings.keysanity)
+    _, retroVar = make_checkbox(tempList, checkBoxFrame, "Retro mode (universal keys)", settings.retro)
+    _, customVar = make_checkbox(tempList, checkBoxFrame, "Use custom item pool", settings.customItems)
+    _, shuffleGanonVar = make_checkbox(tempList, checkBoxFrame, "Include GT and Pyramid Hole in shuffle pool", settings.shuffleGanonEntrance)
     
-    keysanityCheckbutton.pack(expand=True, anchor=W)
-    retroCheckbutton.pack(expand=True, anchor=W)
-    customCheckbutton.pack(expand=True, anchor=W)
-    shuffleGanonCheckbutton.pack(expand=True, anchor=W)
+    for b in tempList:
+        b.pack(expand=True, anchor=W)
+    tempList = []
     
 
     fileDialogFrame = Frame(rightHalfFrame)
@@ -234,15 +239,14 @@ def guiMain(args=None):
 
     drowDownFrame = Frame(topFrame)
 
-    modeFrame, modeVar = make_dropdown(drowDownFrame, 'Game Mode', settings.mode, 'standard', 'open', 'swordless')
-    logicFrame, logicVar = make_dropdown(drowDownFrame, 'Game logic', settings.logic, 'noglitches', 'minorglitches', 'nologic')
-    goalFrame, goalVar = make_dropdown(drowDownFrame, 'Game goal', settings.goal, 'ganon', 'pedestal', 'dungeons', 'triforcehunt', 'crystals')
-    shuffleFrame, shuffleVar = make_dropdown(drowDownFrame, 'Entrance shuffle algorithm', settings.entranceShuffle, 'vanilla', 'simple', 'restricted', 'full', 'crossed', 'insanity', 'restricted_legacy', 'full_legacy', 'madness_legacy', 'insanity_legacy', 'dungeonsfull', 'dungeonssimple')
+    _, modeVar = make_dropdown(tempList, drowDownFrame, 'Game Mode', settings.mode, 'standard', 'open', 'swordless')
+    _, logicVar = make_dropdown(tempList, drowDownFrame, 'Game logic', settings.logic, 'noglitches', 'minorglitches', 'nologic')
+    _, goalVar = make_dropdown(tempList, drowDownFrame, 'Game goal', settings.goal, 'ganon', 'pedestal', 'dungeons', 'triforcehunt', 'crystals')
+    _, shuffleVar = make_dropdown(tempList, drowDownFrame, 'Entrance shuffle algorithm', settings.entranceShuffle, 'vanilla', 'simple', 'restricted', 'full', 'crossed', 'insanity', 'restricted_legacy', 'full_legacy', 'madness_legacy', 'insanity_legacy', 'dungeonsfull', 'dungeonssimple')
 
-    modeFrame.pack(expand=True, anchor=E)
-    goalFrame.pack(expand=True, anchor=E)
-    logicFrame.pack(expand=True, anchor=E)
-    shuffleFrame.pack(expand=True, anchor=E)
+    for b in tempList:
+        b.pack(expand=True, anchor=E)
+    tempList = []
 
     #Generation Tweaks Section
     generationTweaksFrame = LabelFrame(randomizerWindow, text="Generation tweaks", padx=5, pady=5)
@@ -251,29 +255,28 @@ def guiMain(args=None):
     generationTweaksFrameRight = Frame(generationTweaksFrameCenter)
 
     
-    createSpoilerCheckbutton,createSpoilerVar = make_checkbox(generationTweaksFrameRight, "Create Spoiler Log", settings.createSpoiler)
-    suppressRomCheckbutton, suppressRomVar = make_checkbox(generationTweaksFrameRight, "Do not create patched Rom", settings.suppressRom)
-    dungeonItemsCheckbutton, dungeonItemsVar = make_checkbox(generationTweaksFrameRight, "Place Dungeon Items (Compasses/Maps)", settings.includeDungeonItems)
-    beatableOnlyCheckbutton, beatableOnlyVar = make_checkbox(generationTweaksFrameRight, "Only ensure seed is beatable", settings.beatableOnly)
-    hintsCheckbutton, hintsVar = make_checkbox(generationTweaksFrameRight, "Include Helpful Hints", 1 if settings.hints == 'normal' else 0)
-        
-    createSpoilerCheckbutton.pack(expand=True, anchor=W)
-    suppressRomCheckbutton.pack(expand=True, anchor=W)
-    dungeonItemsCheckbutton.pack(expand=True, anchor=W)
-    beatableOnlyCheckbutton.pack(expand=True, anchor=W)
-    hintsCheckbutton.pack(expand=True, anchor=W)
+    _, createSpoilerVar = make_checkbox(tempList, generationTweaksFrameRight, "Create Spoiler Log", settings.createSpoiler)
+    _, suppressRomVar = make_checkbox(tempList, generationTweaksFrameRight, "Do not create patched Rom", settings.suppressRom)
+    _, dungeonItemsVar = make_checkbox(tempList, generationTweaksFrameRight, "Place Dungeon Items (Compasses/Maps)", settings.includeDungeonItems)
+    _, beatableOnlyVar = make_checkbox(tempList, generationTweaksFrameRight, "Only ensure seed is beatable", settings.beatableOnly)
+    _, hintsVar = make_checkbox(tempList, generationTweaksFrameRight, "Include Helpful Hints", 1 if settings.hints == 'normal' else 0)
+    
+    for b in tempList:
+        b.pack(expand=True, anchor=W)
+    tempList = []
 
 
-    difficultyFrame, difficultyVar = make_dropdown(generationTweaksFrameLeft, 'Game difficulty', settings.difficulty, 'easy', 'normal', 'hard', 'expert', 'insane')
-    timerFrame, timerVar = make_dropdown(generationTweaksFrameLeft, 'Timer setting', settings.timer, 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
-    progressiveFrame, progressiveVar = make_dropdown(generationTweaksFrameLeft, 'Progressive equipment', 'on' if settings.progressiveItems else 'off', 'on', 'off', 'random')
-    algorithmFrame, algorithmVar = make_dropdown(generationTweaksFrameLeft, 'Item distribution algorithm', settings.algorithm, 'freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced')
+    _, difficultyVar = make_dropdown(tempList, generationTweaksFrameLeft, 'Game difficulty', settings.difficulty, 'easy', 'normal', 'hard', 'expert', 'insane')
+    _, timerVar = make_dropdown(tempList, generationTweaksFrameLeft, 'Timer setting', settings.timer, 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
+    _, progressiveVar = make_dropdown(tempList, generationTweaksFrameLeft, 'Progressive equipment', 'on' if settings.progressiveItems else 'off', 'on', 'off', 'random')
+    _, algorithmVar = make_dropdown(tempList, generationTweaksFrameLeft, 'Item distribution algorithm', settings.algorithm, 'freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced')
     
-    difficultyFrame.pack(expand=True, anchor=E)
-    timerFrame.pack(expand=True, anchor=E)
-    progressiveFrame.pack(expand=True, anchor=E)
-    algorithmFrame.pack(expand=True, anchor=E)
     
+    for b in tempList:
+        b.pack(expand=True, anchor=E)
+    tempList = []
+
+
     generationTweaksFrameLeft.pack(side=LEFT)
     generationTweaksFrameRight.pack(side=RIGHT)
     generationTweaksFrameCenter.pack(anchor=CENTER)
@@ -284,19 +287,20 @@ def guiMain(args=None):
     tweaksFrameLeft = Frame(tweaksFrameCenter)
     tweaksFrameRight = Frame(tweaksFrameCenter)
     
-    quickSwapCheckbutton, quickSwapVar = make_checkbox(tweaksFrameRight, "Enabled L/R Item quickswapping", settings.quickSwap)
-    disableMusicCheckbutton, disableMusicVar = make_checkbox(tweaksFrameRight, "Disable game music", settings.disableMusic)
+    _, quickSwapVar = make_checkbox(tempList, tweaksFrameRight, "Enabled L/R Item quickswapping", settings.quickSwap)
+    _, disableMusicVar = make_checkbox(tempList, tweaksFrameRight, "Disable game music", settings.disableMusic)
 
-    quickSwapCheckbutton.pack(expand=True, anchor=W)
-    disableMusicCheckbutton.pack(expand=True, anchor=W)
+    for b in tempList:
+        b.pack(expand=True, anchor=W)
+    tempList = []
 
-    heartbeepFrame, heartbeepVar = make_dropdown(tweaksFrameLeft, 'Heartbeep sound rate', settings.heartBeeps, 'double', 'normal', 'half', 'quarter', 'off')
-    heartcolorFrame, heartcolorVar = make_dropdown(tweaksFrameLeft, 'Heart color', settings.heartColor, 'red', 'blue', 'green', 'yellow', 'random')
-    fastMenuFrame, fastMenuVar = make_dropdown(tweaksFrameLeft, 'Menu speed', settings.menuSpeed, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
+    _, heartbeepVar = make_dropdown(tempList, tweaksFrameLeft, 'Heartbeep sound rate', settings.heartBeeps, 'double', 'normal', 'half', 'quarter', 'off')
+    _, heartcolorVar = make_dropdown(tempList, tweaksFrameLeft, 'Heart color', settings.heartColor, 'red', 'blue', 'green', 'yellow', 'random')
+    _, fastMenuVar = make_dropdown(tempList, tweaksFrameLeft, 'Menu speed', settings.menuSpeed, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
     
-    heartbeepFrame.pack(expand=True, anchor=E)
-    heartcolorFrame.pack(expand=True, anchor=E)
-    fastMenuFrame.pack(expand=True, anchor=E)
+    for b in tempList:
+        b.pack(expand=True, anchor=E)
+    tempList = []
 
     
     spriteDialogFrame = Frame(tweaksFrameRight)
@@ -315,6 +319,14 @@ def guiMain(args=None):
 
     set_sprite(None)
     spriteNameVar.set('(unchanged)')
+
+    if settings.sprite != '' and settings.sprite is not None:
+        try:
+            set_sprite(Sprite(local_path(settings.sprite)))
+        except: 
+            messagebox.showerror('Invalid sprite', 'Invalid sprite %s' % settings.sprite)
+        
+
     spriteEntry = Label(spriteDialogFrame, textvariable=spriteNameVar)
 
     def SpriteSelect():

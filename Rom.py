@@ -270,6 +270,7 @@ class Sprite(object):
         with open(filename, 'rb') as file:
             filedata = bytearray(file.read())
         self.name = os.path.basename(filename)
+        self.fileName = os.path.relpath(filename, os.path.commonpath([filename, __file__]))
         self.author_name = None
         self.valid = True
         if len(filedata) == 0x7000:
