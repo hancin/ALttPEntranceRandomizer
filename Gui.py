@@ -5,7 +5,7 @@ import json
 import random
 import os
 import shutil
-from tkinter import Checkbutton, OptionMenu, Toplevel, LabelFrame, PhotoImage, Tk, LEFT, RIGHT, BOTTOM, TOP, StringVar, IntVar, Frame, Label, W, E, X, BOTH, Entry, Spinbox, Button, filedialog, messagebox, ttk
+from tkinter import Checkbutton, OptionMenu, Toplevel, LabelFrame, PhotoImage, Tk, LEFT, RIGHT, BOTTOM, TOP, CENTER, N, S, StringVar, IntVar, Frame, Label, W, E, X, BOTH, Entry, Spinbox, Button, filedialog, messagebox, ttk
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
@@ -15,10 +15,18 @@ from Main import main, __version__ as ESVersion
 from Rom import Sprite
 from Utils import is_bundled, local_path, output_path, open_file, parse_names_string
 
+def make_dropdown(master, text, default, *values):
+    frame = Frame(master)
+    var = StringVar(value=default)
+    option = OptionMenu(frame,var,default,*values)
+    option.pack(side=RIGHT)
+    label = Label(frame, text=text)
+    label.pack(side=LEFT)
+    return frame, var
 
 def guiMain(args=None):
     mainWindow = Tk()
-    mainWindow.wm_title("Entrance Shuffle %s" % ESVersion)
+    mainWindow.wm_title("Multiworld %s" % ESVersion)
 
     set_icon(mainWindow)
 
@@ -54,42 +62,22 @@ def guiMain(args=None):
     rightHalfFrame = Frame(topFrame)
     checkBoxFrame = Frame(rightHalfFrame)
 
-    createSpoilerVar = IntVar()
-    createSpoilerCheckbutton = Checkbutton(checkBoxFrame, text="Create Spoiler Log", variable=createSpoilerVar)
-    suppressRomVar = IntVar()
-    suppressRomCheckbutton = Checkbutton(checkBoxFrame, text="Do not create patched Rom", variable=suppressRomVar)
-    quickSwapVar = IntVar()
-    quickSwapCheckbutton = Checkbutton(checkBoxFrame, text="Enabled L/R Item quickswapping", variable=quickSwapVar)
     keysanityVar = IntVar()
     keysanityCheckbutton = Checkbutton(checkBoxFrame, text="Keysanity (keys anywhere)", variable=keysanityVar)
     retroVar = IntVar()
     retroCheckbutton = Checkbutton(checkBoxFrame, text="Retro mode (universal keys)", variable=retroVar)
-    dungeonItemsVar = IntVar()
-    dungeonItemsCheckbutton = Checkbutton(checkBoxFrame, text="Place Dungeon Items (Compasses/Maps)", onvalue=0, offvalue=1, variable=dungeonItemsVar)
-    beatableOnlyVar = IntVar()
-    beatableOnlyCheckbutton = Checkbutton(checkBoxFrame, text="Only ensure seed is beatable, not all items must be reachable", variable=beatableOnlyVar)
-    disableMusicVar = IntVar()
-    disableMusicCheckbutton = Checkbutton(checkBoxFrame, text="Disable game music", variable=disableMusicVar)
-    shuffleGanonVar = IntVar()
-    shuffleGanonVar.set(1) #set default
-    shuffleGanonCheckbutton = Checkbutton(checkBoxFrame, text="Include Ganon's Tower and Pyramid Hole in shuffle pool", variable=shuffleGanonVar)
-    hintsVar = IntVar()
-    hintsVar.set(1) #set default
-    hintsCheckbutton = Checkbutton(checkBoxFrame, text="Include Helpful Hints", variable=hintsVar)
     customVar = IntVar()
     customCheckbutton = Checkbutton(checkBoxFrame, text="Use custom item pool", variable=customVar)
+    shuffleGanonVar = IntVar()
+    shuffleGanonVar.set(1) #set default
+    shuffleGanonCheckbutton = Checkbutton(checkBoxFrame, text="Include GT and Pyramid Hole in shuffle pool", variable=shuffleGanonVar)
+    
 
-    createSpoilerCheckbutton.pack(expand=True, anchor=W)
-    suppressRomCheckbutton.pack(expand=True, anchor=W)
-    quickSwapCheckbutton.pack(expand=True, anchor=W)
     keysanityCheckbutton.pack(expand=True, anchor=W)
     retroCheckbutton.pack(expand=True, anchor=W)
-    dungeonItemsCheckbutton.pack(expand=True, anchor=W)
-    beatableOnlyCheckbutton.pack(expand=True, anchor=W)
-    disableMusicCheckbutton.pack(expand=True, anchor=W)
-    shuffleGanonCheckbutton.pack(expand=True, anchor=W)
-    hintsCheckbutton.pack(expand=True, anchor=W)
     customCheckbutton.pack(expand=True, anchor=W)
+    shuffleGanonCheckbutton.pack(expand=True, anchor=W)
+    
 
     fileDialogFrame = Frame(rightHalfFrame)
 
@@ -107,36 +95,8 @@ def guiMain(args=None):
     romEntry.pack(side=LEFT)
     romSelectButton.pack(side=LEFT)
 
-    spriteDialogFrame = Frame(fileDialogFrame)
-    baseSpriteLabel = Label(spriteDialogFrame, text='Link Sprite:')
-
-    spriteNameVar = StringVar()
-    sprite = None
-    def set_sprite(sprite_param):
-        nonlocal sprite
-        if sprite_param is None or not sprite_param.valid:
-            sprite = None
-            spriteNameVar.set('(unchanged)')
-        else:
-            sprite = sprite_param
-            spriteNameVar.set(sprite.name)
-
-    set_sprite(None)
-    spriteNameVar.set('(unchanged)')
-    spriteEntry = Label(spriteDialogFrame, textvariable=spriteNameVar)
-
-    def SpriteSelect():
-        SpriteSelector(mainWindow, set_sprite)
-
-    spriteSelectButton = Button(spriteDialogFrame, text='Open Sprite Picker', command=SpriteSelect)
-
-    baseSpriteLabel.pack(side=LEFT)
-    spriteEntry.pack(side=LEFT)
-    spriteSelectButton.pack(side=LEFT)
 
     romDialogFrame.pack()
-    spriteDialogFrame.pack()
-
     checkBoxFrame.pack()
     fileDialogFrame.pack()
 
@@ -166,81 +126,125 @@ def guiMain(args=None):
     goalLabel = Label(goalFrame, text='Game goal')
     goalLabel.pack(side=LEFT)
 
-    difficultyFrame = Frame(drowDownFrame)
-    difficultyVar = StringVar()
-    difficultyVar.set('normal')
-    difficultyOptionMenu = OptionMenu(difficultyFrame, difficultyVar, 'easy', 'normal', 'hard', 'expert', 'insane')
-    difficultyOptionMenu.pack(side=RIGHT)
-    difficultyLabel = Label(difficultyFrame, text='Game difficulty')
-    difficultyLabel.pack(side=LEFT)
 
-    timerFrame = Frame(drowDownFrame)
-    timerVar = StringVar()
-    timerVar.set('none')
-    timerOptionMenu = OptionMenu(timerFrame, timerVar, 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
-    timerOptionMenu.pack(side=RIGHT)
-    timerLabel = Label(timerFrame, text='Timer setting')
-    timerLabel.pack(side=LEFT)
-
-    progressiveFrame = Frame(drowDownFrame)
-    progressiveVar = StringVar()
-    progressiveVar.set('on')
-    progressiveOptionMenu = OptionMenu(progressiveFrame, progressiveVar, 'on', 'off', 'random')
-    progressiveOptionMenu.pack(side=RIGHT)
-    progressiveLabel = Label(progressiveFrame, text='Progressive equipment')
-    progressiveLabel.pack(side=LEFT)
-
-    algorithmFrame = Frame(drowDownFrame)
-    algorithmVar = StringVar()
-    algorithmVar.set('balanced')
-    algorithmOptionMenu = OptionMenu(algorithmFrame, algorithmVar, 'freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced')
-    algorithmOptionMenu.pack(side=RIGHT)
-    algorithmLabel = Label(algorithmFrame, text='Item distribution algorithm')
-    algorithmLabel.pack(side=LEFT)
 
     shuffleFrame = Frame(drowDownFrame)
     shuffleVar = StringVar()
-    shuffleVar.set('full')
+    shuffleVar.set('vanilla')
     shuffleOptionMenu = OptionMenu(shuffleFrame, shuffleVar, 'vanilla', 'simple', 'restricted', 'full', 'crossed', 'insanity', 'restricted_legacy', 'full_legacy', 'madness_legacy', 'insanity_legacy', 'dungeonsfull', 'dungeonssimple')
     shuffleOptionMenu.pack(side=RIGHT)
     shuffleLabel = Label(shuffleFrame, text='Entrance shuffle algorithm')
     shuffleLabel.pack(side=LEFT)
 
-    heartbeepFrame = Frame(drowDownFrame)
-    heartbeepVar = StringVar()
-    heartbeepVar.set('normal')
-    heartbeepOptionMenu = OptionMenu(heartbeepFrame, heartbeepVar, 'double', 'normal', 'half', 'quarter', 'off')
-    heartbeepOptionMenu.pack(side=RIGHT)
-    heartbeepLabel = Label(heartbeepFrame, text='Heartbeep sound rate')
-    heartbeepLabel.pack(side=LEFT)
-
-    heartcolorFrame = Frame(drowDownFrame)
-    heartcolorVar = StringVar()
-    heartcolorVar.set('red')
-    heartcolorOptionMenu = OptionMenu(heartcolorFrame, heartcolorVar, 'red', 'blue', 'green', 'yellow', 'random')
-    heartcolorOptionMenu.pack(side=RIGHT)
-    heartcolorLabel = Label(heartcolorFrame, text='Heart color')
-    heartcolorLabel.pack(side=LEFT)
-
-    fastMenuFrame = Frame(drowDownFrame)
-    fastMenuVar = StringVar()
-    fastMenuVar.set('normal')
-    fastMenuOptionMenu = OptionMenu(fastMenuFrame, fastMenuVar, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
-    fastMenuOptionMenu.pack(side=RIGHT)
-    fastMenuLabel = Label(fastMenuFrame, text='Menu speed')
-    fastMenuLabel.pack(side=LEFT)
 
     modeFrame.pack(expand=True, anchor=E)
-    logicFrame.pack(expand=True, anchor=E)
     goalFrame.pack(expand=True, anchor=E)
+    logicFrame.pack(expand=True, anchor=E)
+    shuffleFrame.pack(expand=True, anchor=E)
+
+    #Generation Tweaks Section
+    generationTweaksFrame = LabelFrame(randomizerWindow, text="Generation tweaks", padx=5, pady=5)
+    generationTweaksFrameCenter = Frame(generationTweaksFrame)
+    generationTweaksFrameLeft = Frame(generationTweaksFrameCenter)
+    generationTweaksFrameRight = Frame(generationTweaksFrameCenter)
+
+    
+    createSpoilerVar = IntVar()
+    createSpoilerCheckbutton = Checkbutton(generationTweaksFrameRight, text="Create Spoiler Log", variable=createSpoilerVar)
+    suppressRomVar = IntVar()
+    suppressRomCheckbutton = Checkbutton(generationTweaksFrameRight, text="Do not create patched Rom", variable=suppressRomVar)
+    dungeonItemsVar = IntVar()
+    dungeonItemsCheckbutton = Checkbutton(generationTweaksFrameRight, text="Place Dungeon Items (Compasses/Maps)", onvalue=0, offvalue=1, variable=dungeonItemsVar)
+    beatableOnlyVar = IntVar()
+    beatableOnlyCheckbutton = Checkbutton(generationTweaksFrameRight, text="Only ensure seed is beatable", variable=beatableOnlyVar)
+    hintsVar = IntVar()
+    hintsVar.set(1) #set default
+    hintsCheckbutton = Checkbutton(generationTweaksFrameRight, text="Include Helpful Hints", variable=hintsVar)
+
+    
+    createSpoilerCheckbutton.pack(expand=True, anchor=W)
+    suppressRomCheckbutton.pack(expand=True, anchor=W)
+    dungeonItemsCheckbutton.pack(expand=True, anchor=W)
+    beatableOnlyCheckbutton.pack(expand=True, anchor=W)
+    hintsCheckbutton.pack(expand=True, anchor=W)
+
+
+    difficultyFrame, difficultyVar = make_dropdown(generationTweaksFrameLeft, 'Game difficulty', 'easy', 'normal', 'hard', 'expert', 'insane')
+    difficultyVar.set('normal')
+    timerFrame, timerVar = make_dropdown(generationTweaksFrameLeft, 'Timer setting', 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
+    progressiveFrame, progressiveVar = make_dropdown(generationTweaksFrameLeft, 'Progressive equipment', 'on', 'off', 'random')
+    algorithmFrame, algorithmVar = make_dropdown(generationTweaksFrameLeft, 'Item distribution algorithm', 'freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced')
+    algorithmVar.set('balanced')
+    
     difficultyFrame.pack(expand=True, anchor=E)
     timerFrame.pack(expand=True, anchor=E)
     progressiveFrame.pack(expand=True, anchor=E)
     algorithmFrame.pack(expand=True, anchor=E)
-    shuffleFrame.pack(expand=True, anchor=E)
+    
+    generationTweaksFrameLeft.pack(side=LEFT)
+    generationTweaksFrameRight.pack(side=RIGHT)
+    generationTweaksFrameCenter.pack(anchor=CENTER)
+
+    #Tweaks Section
+    tweaksFrame = LabelFrame(randomizerWindow, text="Game tweaks", padx=5, pady=5)
+    tweaksFrameCenter = Frame(tweaksFrame)
+    tweaksFrameLeft = Frame(tweaksFrameCenter)
+    tweaksFrameRight = Frame(tweaksFrameCenter)
+    
+    quickSwapVar = IntVar()
+    quickSwapCheckbutton = Checkbutton(tweaksFrameRight, text="Enabled L/R Item quickswapping", variable=quickSwapVar)
+    disableMusicVar = IntVar()
+    disableMusicCheckbutton = Checkbutton(tweaksFrameRight, text="Disable game music", variable=disableMusicVar)
+
+    quickSwapCheckbutton.pack(expand=True, anchor=W)
+    disableMusicCheckbutton.pack(expand=True, anchor=W)
+
+    heartbeepFrame, heartbeepVar = make_dropdown(tweaksFrameLeft, 'Heartbeep sound rate', 'double', 'normal', 'half', 'quarter', 'off')
+    heartbeepVar.set('normal')
+    heartcolorFrame, heartcolorVar = make_dropdown(tweaksFrameLeft, 'Heart color', 'red', 'blue', 'green', 'yellow', 'random')
+    fastMenuFrame, fastMenuVar = make_dropdown(tweaksFrameLeft, 'Menu speed', 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
+    
     heartbeepFrame.pack(expand=True, anchor=E)
     heartcolorFrame.pack(expand=True, anchor=E)
     fastMenuFrame.pack(expand=True, anchor=E)
+
+    
+    spriteDialogFrame = Frame(tweaksFrameRight)
+    baseSpriteLabel = Label(spriteDialogFrame, text='Link Sprite:')
+
+    spriteNameVar = StringVar()
+    sprite = None
+    def set_sprite(sprite_param):
+        nonlocal sprite
+        if sprite_param is None or not sprite_param.valid:
+            sprite = None
+            spriteNameVar.set('(unchanged)')
+        else:
+            sprite = sprite_param
+            spriteNameVar.set(sprite.name)
+
+    set_sprite(None)
+    spriteNameVar.set('(unchanged)')
+    spriteEntry = Label(spriteDialogFrame, textvariable=spriteNameVar)
+
+    def SpriteSelect():
+        SpriteSelector(mainWindow, set_sprite)
+
+    spriteSelectButton = Button(spriteDialogFrame, text='Open Sprite Picker', command=SpriteSelect)
+
+    baseSpriteLabel.pack(side=LEFT)
+    spriteEntry.pack(side=LEFT)
+    spriteSelectButton.pack(side=LEFT)
+
+    spriteDialogFrame.pack()
+
+    tweaksFrameLeft.pack(side=LEFT)
+    tweaksFrameRight.pack(side=RIGHT)
+    tweaksFrameCenter.pack(anchor=CENTER)
+    
+
+
+    # Enemizer Section
 
     enemizerFrame = LabelFrame(randomizerWindow, text="Enemizer", padx=5, pady=5)
     enemizerFrame.columnconfigure(0, weight=1)
@@ -298,6 +302,7 @@ def guiMain(args=None):
     enemizerHealthOption = OptionMenu(enemizerHealthFrame, enemizerHealthVar, 'default', 'easy', 'normal', 'hard', 'expert')
     enemizerHealthOption.pack(side=LEFT)
 
+    # Multiworld section
     bottomFrame = Frame(randomizerWindow, pady=5)
 
     worldLabel = Label(bottomFrame, text='Worlds')
@@ -398,6 +403,8 @@ def guiMain(args=None):
     topFrame.pack(side=TOP)
     bottomFrame.pack(side=BOTTOM)
     enemizerFrame.pack(side=BOTTOM, fill=BOTH)
+    tweaksFrame.pack(side=BOTTOM, fill=X)
+    generationTweaksFrame.pack(side=BOTTOM, fill=X)
 
     # Adjuster Controls
 
