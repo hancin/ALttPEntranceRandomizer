@@ -127,7 +127,7 @@ def main(args, seed=None):
     player_names = parse_names_string(args.names)
     outfilebase = 'ER_%s_%s-%s-%s%s_%s-%s%s%s%s%s' % (world.logic, world.difficulty, world.mode, world.goal, "" if world.timer in ['none', 'display'] else "-" + world.timer, world.shuffle, world.algorithm, "-keysanity" if world.keysanity else "", "-retro" if world.retro else "", "-prog_" + world.progressive if world.progressive in ['off', 'random'] else "", "-nohints" if not world.hints else "")
 
-    use_enemizer = args.enemizercli and (args.shufflebosses != 'none' or args.shuffleenemies or args.enemy_health != 'default' or args.enemy_health != 'default' or args.enemy_damage or args.shufflepalette or args.shufflepots)
+    use_enemizer = args.enemizercli and (args.shufflebosses != 'none' or args.shuffleenemies or args.enemy_health != 'default' or args.enemy_health != 'default' or args.enemy_damage != 'default' or args.shufflepalette or args.shufflepots)
 
     jsonout = {}
     if not args.suppress_rom:
