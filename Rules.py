@@ -420,7 +420,8 @@ def global_rules(world, player):
 
     set_trock_key_rules(world, player)
 
-    set_rule(world.get_entrance('Ganons Tower', player), lambda state: state.has('Crystal 1', player) and state.has('Crystal 2', player) and state.has('Crystal 3', player) and state.has('Crystal 4', player) and state.has('Crystal 5', player) and state.has('Crystal 6', player) and state.has('Crystal 7', player))
+    #HACK: require AD for GT ENTRANCE item placement in MW
+    set_rule(world.get_entrance('Ganons Tower', player), lambda state: state.can_reach('Master Sword Pedestal', 'Location', player) and state.has('Crystal 1', player) and state.has('Crystal 2', player) and state.has('Crystal 3', player) and state.has('Crystal 4', player) and state.has('Crystal 5', player) and state.has('Crystal 6', player) and state.has('Crystal 7', player))
 
 
 def no_glitches_rules(world, player):

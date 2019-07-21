@@ -346,7 +346,7 @@ def balance_multiworld_progression(world):
 
         if checked_locations:
             average_reachable_locations = sum(reachable_locations_count.values()) / world.players
-            threshold = ((average_reachable_locations + max(reachable_locations_count.values())) / 2) * 0.8 #todo: probably needs some tweaking
+            threshold = ((average_reachable_locations + max(reachable_locations_count.values())) / 2) * 0.875 #todo: probably needs some tweaking
 
             balancing_players = [player for player, reachables in reachable_locations_count.items() if reachables < threshold]
             if balancing_players:
